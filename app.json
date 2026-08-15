@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Rokda",
+    "slug": "rokda",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "rokda",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.rokda.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Rokda uses Face ID to protect your sensitive financial records."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "package": "com.rokda.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Rokda to use Face ID to protect your personal money manager."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

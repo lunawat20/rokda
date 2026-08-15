@@ -1,0 +1,7 @@
+// CAMERA SCAN TAB ROUTE PLACEHOLDER
+import React from 'react';
+import { View } from 'react-native';
+
+export default function ScanTabPlaceholder() {
+  return <View />;
+}
