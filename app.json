@@ -2,6 +2,7 @@
   "expo": {
     "name": "Rokda",
     "slug": "rokda",
+    "owner": "sidlunawat20",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,7 +25,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
       },
-      "package": "com.rokda.app"
+      "package": "com.rokda.app",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -42,6 +47,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "87d97451-327a-4a96-b4ae-07d7b13e1075"
+      }
     }
   }
 }
