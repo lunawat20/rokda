@@ -1,7 +1,8 @@
 // ROKDA QUICK ADD TRANSACTION MODAL
+// With Category Live Search, Custom Category Creation, Date Selector, & Account Selection.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Modal, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -9,8 +10,8 @@ import { useTheme } from '../../src/context/ThemeContext';
 import { useAuth } from '../../src/context/AuthContext';
 import { useDb } from '../../src/context/DbContext';
 import { parseInputToPaise } from '../../src/utils/currency';
-import { saveTransaction, enqueueSyncItem } from '../../src/database/repository';
-import { Transaction, TransactionType } from '../../src/types';
+import { saveTransaction, saveCategory, enqueueSyncItem } from '../../src/database/repository';
+import { Transaction, TransactionType, Category } from '../../src/types';
 
 export default function QuickAddTransactionScreen() {
   const { colors } = useTheme();
@@ -18,17 +19,29 @@ export default function QuickAddTransactionScreen() {
   const { accounts, categories, refreshData } = useDb();
   const router = useRouter();
 
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const [type, setType] = useState<TransactionType>('expense');
   const [amountInput, setAmountInput] = useState('');
   const [merchant, setMerchant] = useState('');
+  const [txDate, setTxDate] = useState(todayStr);
   const [categoryId, setCategoryId] = useState('');
   const [accountId, setAccountId] = useState('');
   const [destAccountId, setDestAccountId] = useState('');
   const [notes, setNotes] = useState('');
 
-  const activeCategories = categories.filter(c => c.type === (type === 'income' ? 'income' : 'expense'));
+  // Category Search & Add Modal State
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('pricetag');
+  const [newCatColor, setNewCatColor] = useState('#10B981');
 
-  // Automatically select first valid account and category when data loads
+  const activeCategories = categories.filter(c => c.type === (type === 'income' ? 'income' : 'expense'));
+  const filteredCategories = activeCategories.filter(c =>
+    c.name.toLowerCase().includes(categorySearchQuery.trim().toLowerCase())
+  );
+
   useEffect(() => {
     if (!accountId && accounts.length > 0) {
       setAccountId(accounts[0].id);
@@ -44,6 +57,44 @@ export default function QuickAddTransactionScreen() {
     }
   }, [activeCategories, categoryId]);
 
+  const handleCreateCategory = async () => {
+    if (!user) return;
+    if (!newCatName.trim()) {
+      Alert.alert('Missing Name', 'Please enter a category name.');
+      return;
+    }
+
+    const newCat: Category = {
+      id: `cat_${Date.now()}`,
+      user_id: user.id,
+      name: newCatName.trim(),
+      type: type === 'income' ? 'income' : 'expense',
+      icon: newCatIcon,
+      color: newCatColor,
+      is_archived: false,
+      is_system: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      version: 1
+    };
+
+    await saveCategory(newCat);
+    await enqueueSyncItem({
+      id: `sync_${Date.now()}`,
+      user_id: user.id,
+      table_name: 'categories',
+      record_id: newCat.id,
+      action: 'INSERT',
+      payload_json: JSON.stringify(newCat)
+    });
+
+    await refreshData();
+    setCategoryId(newCat.id);
+    setAddCategoryModalVisible(false);
+    setNewCatName('');
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
   const handleSave = async () => {
     if (!user) return;
     if (!amountInput || parseFloat(amountInput) <= 0) {
@@ -51,16 +102,16 @@ export default function QuickAddTransactionScreen() {
       return;
     }
     if (!merchant.trim() && type !== 'transfer') {
-      Alert.alert('Missing Merchant', 'Please enter a merchant name.');
+      Alert.alert('Missing Merchant', 'Please enter a merchant or payee name.');
       return;
     }
 
-    const targetAccountId = accountId || (accounts.length > 0 ? accounts[0].id : '');
-    if (!targetAccountId) {
-      Alert.alert('Missing Account', 'Please select an account.');
+    if (accounts.length === 0) {
+      Alert.alert('No Account Found', 'Please add a bank account or cash account first.');
       return;
     }
 
+    const targetAccountId = accountId || accounts[0].id;
     const targetDestAccountId = destAccountId || (accounts.length > 1 ? accounts[1].id : '');
 
     if (type === 'transfer' && targetAccountId === targetDestAccountId) {
@@ -70,7 +121,6 @@ export default function QuickAddTransactionScreen() {
 
     const amountPaise = parseInputToPaise(amountInput);
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toTimeString().split(' ')[0];
 
     const newTx: Transaction = {
@@ -82,7 +132,7 @@ export default function QuickAddTransactionScreen() {
       account_id: targetAccountId,
       destination_account_id: type === 'transfer' ? targetDestAccountId : null,
       merchant: type === 'transfer' ? `Transfer to ${accounts.find(a => a.id === targetDestAccountId)?.name || 'Account'}` : merchant.trim(),
-      date: dateStr,
+      date: txDate.trim() || todayStr,
       time: timeStr,
       notes: notes.trim(),
       is_recurring: false,
@@ -109,14 +159,14 @@ export default function QuickAddTransactionScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Quick Add Transaction</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Add Transaction</Text>
         <Pressable onPress={() => router.back()}>
           <Ionicons name="close-circle" size={28} color={colors.textMuted} />
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Type Selector (Expense / Income / Transfer) */}
+        {/* Type Switcher (Expense / Income / Transfer) */}
         <View style={[styles.typeContainer, { backgroundColor: colors.inputBg }]}>
           {(['expense', 'income', 'transfer'] as TransactionType[]).map(t => (
             <Pressable
@@ -130,12 +180,7 @@ export default function QuickAddTransactionScreen() {
                 setType(t);
               }}
             >
-              <Text
-                style={[
-                  styles.typeTabText,
-                  { color: type === t ? colors.textPrimary : colors.textMuted }
-                ]}
-              >
+              <Text style={[styles.typeTabText, { color: type === t ? colors.textPrimary : colors.textMuted }]}>
                 {t.toUpperCase()}
               </Text>
             </Pressable>
@@ -159,41 +204,64 @@ export default function QuickAddTransactionScreen() {
           </View>
         </View>
 
-        {/* Merchant Input (If not transfer) */}
-        {type !== 'transfer' && (
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Merchant / Description</Text>
+        {/* Merchant & Date Row */}
+        <View style={styles.rowInputs}>
+          {type !== 'transfer' && (
+            <View style={[styles.inputGroup, { flex: 1 }]}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Merchant / Payee</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
+                placeholder="e.g. Starbucks, Amazon"
+                placeholderTextColor={colors.textMuted}
+                value={merchant}
+                onChangeText={setMerchant}
+              />
+            </View>
+          )}
+
+          <View style={[styles.inputGroup, { width: type !== 'transfer' ? 130 : '100%' }]}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Date (YYYY-MM-DD)</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-              placeholder="e.g. Starbucks, Grocery, Salary"
+              placeholder="YYYY-MM-DD"
               placeholderTextColor={colors.textMuted}
-              value={merchant}
-              onChangeText={setMerchant}
+              value={txDate}
+              onChangeText={setTxDate}
             />
           </View>
-        )}
+        </View>
 
         {/* Account Selector */}
         <View style={styles.inputGroup}>
           <Text style={[styles.label, { color: colors.textSecondary }]}>
             {type === 'transfer' ? 'Source Account' : 'Account'}
           </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-            {accounts.map(acc => (
-              <Pressable
-                key={acc.id}
-                style={[
-                  styles.chip,
-                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder },
-                  (accountId || accounts[0]?.id) === acc.id && { backgroundColor: colors.accentLight, borderColor: colors.accent }
-                ]}
-                onPress={() => setAccountId(acc.id)}
-              >
-                <Ionicons name={(acc.icon as any) || 'wallet-outline'} size={16} color={(accountId || accounts[0]?.id) === acc.id ? colors.accent : colors.textMuted} />
-                <Text style={[styles.chipText, { color: (accountId || accounts[0]?.id) === acc.id ? colors.accent : colors.textPrimary }]}>{acc.name}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+          {accounts.length === 0 ? (
+            <Pressable
+              style={[styles.addBtnEmpty, { borderColor: colors.accent }]}
+              onPress={() => router.push('/accounts')}
+            >
+              <Ionicons name="add-circle" size={18} color={colors.accent} />
+              <Text style={[styles.addBtnEmptyText, { color: colors.accent }]}>+ Create Bank Account First</Text>
+            </Pressable>
+          ) : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+              {accounts.map(acc => (
+                <Pressable
+                  key={acc.id}
+                  style={[
+                    styles.chip,
+                    { backgroundColor: colors.inputBg, borderColor: colors.cardBorder },
+                    (accountId || accounts[0]?.id) === acc.id && { backgroundColor: colors.accentLight, borderColor: colors.accent }
+                  ]}
+                  onPress={() => setAccountId(acc.id)}
+                >
+                  <Ionicons name={(acc.icon as any) || 'wallet-outline'} size={16} color={(accountId || accounts[0]?.id) === acc.id ? colors.accent : colors.textMuted} />
+                  <Text style={[styles.chipText, { color: (accountId || accounts[0]?.id) === acc.id ? colors.accent : colors.textPrimary }]}>{acc.name}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
         </View>
 
         {/* Destination Account (If transfer) */}
@@ -219,12 +287,35 @@ export default function QuickAddTransactionScreen() {
           </View>
         )}
 
-        {/* Category Selector (If not transfer) */}
+        {/* Category Search & Selection (If not transfer) */}
         {type !== 'transfer' && (
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+            <View style={styles.labelRow}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Category</Text>
+              <Pressable onPress={() => setAddCategoryModalVisible(true)}>
+                <Text style={[styles.addCatLink, { color: colors.accent }]}>+ Add New Category</Text>
+              </Pressable>
+            </View>
+
+            {/* Live Search Input */}
+            <View style={[styles.searchBar, { backgroundColor: colors.inputBg, borderColor: colors.cardBorder }]}>
+              <Ionicons name="search" size={16} color={colors.textMuted} />
+              <TextInput
+                style={[styles.searchInput, { color: colors.textPrimary }]}
+                placeholder="Search categories..."
+                placeholderTextColor={colors.textMuted}
+                value={categorySearchQuery}
+                onChangeText={setCategorySearchQuery}
+              />
+              {categorySearchQuery.length > 0 && (
+                <Pressable onPress={() => setCategorySearchQuery('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </Pressable>
+              )}
+            </View>
+
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
-              {activeCategories.map(cat => (
+              {filteredCategories.map(cat => (
                 <Pressable
                   key={cat.id}
                   style={[
@@ -262,6 +353,38 @@ export default function QuickAddTransactionScreen() {
           <Text style={styles.saveButtonText}>Save Transaction</Text>
         </Pressable>
       </ScrollView>
+
+      {/* Modal: Create Custom Category */}
+      <Modal visible={addCategoryModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Create Custom Category</Text>
+              <Pressable onPress={() => setAddCategoryModalVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.textMuted} />
+              </Pressable>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.textSecondary }]}>Category Name</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
+                placeholder="e.g. Pet Care, Gaming, Freelance"
+                placeholderTextColor={colors.textMuted}
+                value={newCatName}
+                onChangeText={setNewCatName}
+              />
+            </View>
+
+            <Pressable
+              style={[styles.saveButton, { backgroundColor: colors.accent, marginTop: 16 }]}
+              onPress={handleCreateCategory}
+            >
+              <Text style={styles.saveButtonText}>Save Category</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -280,12 +403,23 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   currencySymbol: { fontSize: 32, fontWeight: '700', marginRight: 6 },
   amountInput: { fontSize: 36, fontWeight: '800', minWidth: 120, textAlign: 'center' },
+  rowInputs: { flexDirection: 'row', gap: 12 },
   inputGroup: { gap: 6 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: { fontSize: 13, fontWeight: '600' },
+  addCatLink: { fontSize: 12, fontWeight: '700' },
   input: { height: 48, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, fontSize: 15 },
+  searchBar: { flexDirection: 'row', alignItems: 'center', height: 40, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, gap: 8 },
+  searchInput: { flex: 1, fontSize: 13 },
   chipRow: { gap: 8, paddingVertical: 4 },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 13, fontWeight: '600' },
+  addBtnEmpty: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 14, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed' },
+  addBtnEmptyText: { fontSize: 14, fontWeight: '700' },
   saveButton: { height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 10 },
   saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', paddingHorizontal: 20 },
+  modalBox: { padding: 20, borderRadius: 20, borderWidth: 1, gap: 14 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  modalTitle: { fontSize: 18, fontWeight: '700' },
 });

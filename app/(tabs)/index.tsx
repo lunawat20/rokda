@@ -1,4 +1,4 @@
-// ROKDA BESPOKE HOME DASHBOARD (ORIGINAL PREMIUM IDENTITY)
+// ROKDA BESPOKE HOME DASHBOARD (TRUE ZERO STATE & PREMIUM IDENTITY)
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native';
@@ -26,13 +26,6 @@ export default function HomeScreen() {
   const cashFlow = calculateCashFlow(transactions);
   const smartInsights = generateSmartInsights(transactions, budgets, subscriptions, recurring);
 
-  const defaultEnvelopes = [
-    { id: 'env_rent', name: 'Rent & Housing', spentPaise: 2500000, targetPaise: 2500000, type: 'FIXED', icon: 'home-outline', color: '#8B5CF6' },
-    { id: 'env_groceries', name: 'Groceries & Household', spentPaise: 345000, targetPaise: 1200000, type: 'VARIABLE', icon: 'cart-outline', color: '#10B981' },
-    { id: 'env_dining', name: 'Dining & Coffee', spentPaise: 48000, targetPaise: 500000, type: 'VARIABLE', icon: 'restaurant-outline', color: '#F59E0B' },
-    { id: 'env_tech', name: 'Tech & Gadgets', spentPaise: 249900, targetPaise: 800000, type: 'VARIABLE', icon: 'laptop-outline', color: '#EC4899' },
-  ];
-
   const handleRefresh = async () => {
     setRefreshing(true);
     if (user) {
@@ -51,7 +44,7 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.accent} />
         }
       >
-        {/* 1. Header with Initials Avatar (No Piggy Logo) */}
+        {/* 1. Header with User Initials Avatar */}
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: colors.textSecondary }]}>Welcome back,</Text>
@@ -71,13 +64,13 @@ export default function HomeScreen() {
           <View style={styles.heroHeaderRow}>
             <Text style={[styles.heroLabel, { color: colors.textSecondary }]}>TOTAL NET WORTH</Text>
             <View style={[styles.statusTag, { backgroundColor: colors.accentLight }]}>
-              <Ionicons name="trending-up" size={12} color={colors.accent} />
-              <Text style={[styles.statusTagText, { color: colors.accent }]}>+12.4% this mo</Text>
+              <Ionicons name="shield-checkmark" size={12} color={colors.accent} />
+              <Text style={[styles.statusTagText, { color: colors.accent }]}>Local Encrypted</Text>
             </View>
           </View>
 
           <Text style={[styles.netWorthVal, { color: colors.textPrimary }]}>
-            {formatPaise(netWorth.netWorthPaise)}
+            {formatPaise(accounts.length > 0 ? netWorth.netWorthPaise : 0)}
           </Text>
 
           <View style={[styles.divider, { backgroundColor: colors.cardBorder }]} />
@@ -142,28 +135,41 @@ export default function HomeScreen() {
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Accounts & Balances</Text>
           <Pressable onPress={() => router.push('/accounts')}>
-            <Text style={[styles.seeAllText, { color: colors.accent }]}>Manage →</Text>
+            <Text style={[styles.seeAllText, { color: colors.accent }]}>+ Add Account</Text>
           </Pressable>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accountRow}>
-          {accounts.map(acc => (
-            <Pressable
-              key={acc.id}
-              style={[styles.accountCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-              onPress={() => router.push('/accounts')}
-            >
-              <View style={styles.accCardHeader}>
-                <Ionicons name={(acc.icon as any) || 'card-outline'} size={20} color={acc.color || colors.accent} />
-                <Text style={[styles.accTypeBadge, { color: colors.textMuted }]}>{acc.type.toUpperCase()}</Text>
-              </View>
-              <Text style={[styles.accName, { color: colors.textSecondary }]}>{acc.name}</Text>
-              <Text style={[styles.accBalance, { color: colors.textPrimary }]}>{formatPaise(acc.current_balance_paise)}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        {accounts.length === 0 ? (
+          <Pressable
+            style={[styles.emptyAccountCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/accounts')}
+          >
+            <Ionicons name="card-outline" size={28} color={colors.accent} />
+            <Text style={[styles.emptyAccTitle, { color: colors.textPrimary }]}>No Accounts Added Yet</Text>
+            <Text style={[styles.emptyAccSub, { color: colors.textMuted }]}>
+              Tap here to add your Cash, HDFC Bank, or Credit Card account.
+            </Text>
+          </Pressable>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accountRow}>
+            {accounts.map(acc => (
+              <Pressable
+                key={acc.id}
+                style={[styles.accountCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+                onPress={() => router.push('/accounts')}
+              >
+                <View style={styles.accCardHeader}>
+                  <Ionicons name={(acc.icon as any) || 'card-outline'} size={20} color={acc.color || colors.accent} />
+                  <Text style={[styles.accTypeBadge, { color: colors.textMuted }]}>{acc.type.toUpperCase()}</Text>
+                </View>
+                <Text style={[styles.accName, { color: colors.textSecondary }]}>{acc.name}</Text>
+                <Text style={[styles.accBalance, { color: colors.textPrimary }]}>{formatPaise(acc.current_balance_paise)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
 
-        {/* 4. Envelopes / Category Budgets Grid */}
+        {/* 4. Envelopes / Category Budgets Section */}
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Category Envelopes</Text>
           <Pressable onPress={() => router.push('/envelopes' as any)}>
@@ -171,40 +177,54 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.envelopeGrid}>
-          {defaultEnvelopes.map(env => {
-            const percent = Math.min(100, Math.round((env.spentPaise / env.targetPaise) * 100));
-            return (
-              <Pressable
-                key={env.id}
-                style={[styles.envTile, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
-                onPress={() => router.push('/envelopes' as any)}
-              >
-                <View style={styles.envTop}>
-                  <View style={[styles.envIconCircle, { backgroundColor: `${env.color}22` }]}>
-                    <Ionicons name={env.icon as any} size={18} color={env.color} />
-                  </View>
-                  <View style={[styles.typePill, { backgroundColor: colors.inputBg }]}>
-                    <Text style={[styles.typePillText, { color: colors.textMuted }]}>{env.type}</Text>
-                  </View>
-                </View>
+        {budgets.length === 0 ? (
+          <Pressable
+            style={[styles.emptyEnvelopeCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+            onPress={() => router.push('/envelopes' as any)}
+          >
+            <Ionicons name="folder-open-outline" size={28} color={colors.accent} />
+            <Text style={[styles.emptyAccTitle, { color: colors.textPrimary }]}>No Budget Envelopes Set</Text>
+            <Text style={[styles.emptyAccSub, { color: colors.textMuted }]}>
+              Create monthly spending envelopes for Rent, Groceries, & Coffee.
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.envelopeGrid}>
+            {budgets.map(b => {
+              const cat = categories.find(c => c.id === b.category_id);
+              const catTxs = transactions.filter(t => !t.deleted_at && t.type === 'expense' && t.category_id === b.category_id);
+              const spentPaise = catTxs.reduce((sum, t) => sum + t.amount_paise, 0);
+              const percent = Math.min(100, Math.round((spentPaise / b.amount_paise) * 100));
 
-                <View style={styles.envBottom}>
-                  <Text style={[styles.envTitle, { color: colors.textPrimary }]}>{env.name}</Text>
-                  <Text style={[styles.envPaise, { color: colors.textPrimary }]}>
-                    {formatPaise(env.spentPaise)}{' '}
-                    <Text style={[styles.envTargetPaise, { color: colors.textMuted }]}>/ {formatPaise(env.targetPaise)}</Text>
-                  </Text>
-
-                  {/* Progress Bar */}
-                  <View style={[styles.barTrack, { backgroundColor: colors.inputBg }]}>
-                    <View style={[styles.barFill, { width: `${percent}%`, backgroundColor: env.color }]} />
+              return (
+                <Pressable
+                  key={b.id}
+                  style={[styles.envTile, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}
+                  onPress={() => router.push('/envelopes' as any)}
+                >
+                  <View style={styles.envTop}>
+                    <View style={[styles.envIconCircle, { backgroundColor: `${cat?.color || colors.accent}22` }]}>
+                      <Ionicons name={(cat?.icon as any) || 'folder-outline'} size={18} color={cat?.color || colors.accent} />
+                    </View>
                   </View>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
+
+                  <View style={styles.envBottom}>
+                    <Text style={[styles.envTitle, { color: colors.textPrimary }]}>{cat?.name || 'Category'}</Text>
+                    <Text style={[styles.envPaise, { color: colors.textPrimary }]}>
+                      {formatPaise(spentPaise)}{' '}
+                      <Text style={[styles.envTargetPaise, { color: colors.textMuted }]}>/ {formatPaise(b.amount_paise)}</Text>
+                    </Text>
+
+                    {/* Progress Bar */}
+                    <View style={[styles.barTrack, { backgroundColor: colors.inputBg }]}>
+                      <View style={[styles.barFill, { width: `${percent}%`, backgroundColor: cat?.color || colors.accent }]} />
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         {/* 5. Smart Insights Callout */}
         {smartInsights.length > 0 && (
@@ -253,12 +273,14 @@ const styles = StyleSheet.create({
   accTypeBadge: { fontSize: 9, fontWeight: '800' },
   accName: { fontSize: 13, fontWeight: '600' },
   accBalance: { fontSize: 16, fontWeight: '800' },
+  emptyAccountCard: { padding: 20, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  emptyEnvelopeCard: { padding: 20, borderRadius: 18, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  emptyAccTitle: { fontSize: 15, fontWeight: '700' },
+  emptyAccSub: { fontSize: 12, textAlign: 'center' },
   envelopeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   envTile: { width: '48%', padding: 14, borderRadius: 18, borderWidth: 1, gap: 12 },
   envTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   envIconCircle: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  typePill: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  typePillText: { fontSize: 9, fontWeight: '800' },
   envBottom: { gap: 2 },
   envTitle: { fontSize: 13, fontWeight: '700' },
   envPaise: { fontSize: 14, fontWeight: '800', marginTop: 2 },

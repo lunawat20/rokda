@@ -51,42 +51,8 @@ export const SYSTEM_CATEGORIES: Omit<Category, 'user_id' | 'created_at' | 'updat
   { id: 'cat_other_income', name: 'Other Income', type: 'income', icon: 'cash', color: '#10B981', is_archived: false, is_system: true }
 ];
 
-// Clean Zero Balance Initial Accounts
-export const DEFAULT_ACCOUNTS: Omit<Account, 'user_id' | 'created_at' | 'updated_at' | 'version'>[] = [
-  {
-    id: 'acc_cash',
-    name: 'Cash In Hand',
-    type: 'cash',
-    opening_balance_paise: 0, // ₹0
-    current_balance_paise: 0,
-    currency_code: 'INR',
-    icon: 'cash',
-    color: '#10B981',
-    is_archived: false
-  },
-  {
-    id: 'acc_bank_main',
-    name: 'Primary Bank Account',
-    type: 'bank',
-    opening_balance_paise: 0, // ₹0
-    current_balance_paise: 0,
-    currency_code: 'INR',
-    icon: 'card',
-    color: '#3B82F6',
-    is_archived: false
-  },
-  {
-    id: 'acc_credit_card',
-    name: 'Credit Card',
-    type: 'credit_card',
-    opening_balance_paise: 0, // ₹0
-    current_balance_paise: 0,
-    currency_code: 'INR',
-    icon: 'card-outline',
-    color: '#EF4444',
-    is_archived: false
-  }
-];
+// Completely Empty Default Accounts Array (User creates their own accounts)
+export const DEFAULT_ACCOUNTS: Omit<Account, 'user_id' | 'created_at' | 'updated_at' | 'version'>[] = [];
 
 export const DEFAULT_DASHBOARD_SECTIONS = [
   { section_id: 'balance_card', order_index: 0, is_visible: true },
