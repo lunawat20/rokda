@@ -2,7 +2,7 @@
 // With Category Live Search, Custom Category Creation, Date Selector, & Account Selection.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Modal, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -356,34 +356,38 @@ export default function QuickAddTransactionScreen() {
 
       {/* Modal: Create Custom Category */}
       <Modal visible={addCategoryModalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Create Custom Category</Text>
-              <Pressable onPress={() => setAddCategoryModalVisible(false)}>
-                <Ionicons name="close" size={24} color={colors.textMuted} />
-              </Pressable>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
+              <View style={[styles.modalBox, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                <View style={styles.modalHeader}>
+                  <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Create Custom Category</Text>
+                  <Pressable onPress={() => setAddCategoryModalVisible(false)}>
+                    <Ionicons name="close" size={24} color={colors.textMuted} />
+                  </Pressable>
+                </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textSecondary }]}>Category Name</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-                placeholder="e.g. Pet Care, Gaming, Freelance"
-                placeholderTextColor={colors.textMuted}
-                value={newCatName}
-                onChangeText={setNewCatName}
-              />
-            </View>
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>Category Name</Text>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
+                    placeholder="e.g. Pet Care, Gaming, Freelance"
+                    placeholderTextColor={colors.textMuted}
+                    value={newCatName}
+                    onChangeText={setNewCatName}
+                  />
+                </View>
 
-            <Pressable
-              style={[styles.saveButton, { backgroundColor: colors.accent, marginTop: 16 }]}
-              onPress={handleCreateCategory}
-            >
-              <Text style={styles.saveButtonText}>Save Category</Text>
-            </Pressable>
+                <Pressable
+                  style={[styles.saveButton, { backgroundColor: colors.accent, marginTop: 16 }]}
+                  onPress={handleCreateCategory}
+                >
+                  <Text style={styles.saveButtonText}>Save Category</Text>
+                </Pressable>
+              </View>
+            </KeyboardAvoidingView>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );

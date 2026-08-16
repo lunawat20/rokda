@@ -1,5 +1,5 @@
 // ROKDA THEME CONTEXT & BESPOKE DESIGN SYSTEM TOKENS
-// Obsidian Midnight & Emerald/Coral Fusion Palette (Unique & Original Identity)
+// Modern Gen-Z Cyber Obsidian & Neon Emerald Palette
 
 import React, { createContext, useContext, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
@@ -24,23 +24,23 @@ export interface ThemeColors {
   inputBg: string;
 }
 
-// Bespoke Dark Obsidian Midnight & Emerald/Coral Palette
+// Gen-Z Cyber Obsidian & Neon Emerald Palette
 const darkColors: ThemeColors = {
-  bg: '#0B0F17',
-  card: '#141C2E',
-  cardBorder: '#222E4A',
+  bg: '#06090E',
+  card: '#0E1420',
+  cardBorder: '#1C293E',
   textPrimary: '#FFFFFF',
   textSecondary: '#94A3B8',
   textMuted: '#64748B',
-  accent: '#10B981',           // Emerald Jade (Income & Primary Action)
-  accentLight: '#10B98122',    // Emerald Glow Tint
-  accentSecondary: '#FF6B4A',  // Coral Sunset Accent
-  danger: '#FB7185',           // Rose Red (Expense)
-  warning: '#FBBF24',          // Champagne Gold
-  success: '#34D399',          // Mint Green
-  tabBar: '#0E1524',
-  tabBarBorder: '#1C283F',
-  inputBg: '#1A243B'
+  accent: '#00FF9D',           // Neon Cyber Emerald
+  accentLight: '#00FF9D1A',    // Neon Emerald Tint
+  accentSecondary: '#A855F7',  // Electric Purple
+  danger: '#FF5E7E',           // Hot Crimson Coral
+  warning: '#FFB800',          // Cyber Amber
+  success: '#00FF9D',
+  tabBar: '#0A0F19',
+  tabBarBorder: '#1A2436',
+  inputBg: '#141D2E'
 };
 
 const lightColors: ThemeColors = {
@@ -52,7 +52,7 @@ const lightColors: ThemeColors = {
   textMuted: '#94A3B8',
   accent: '#059669',
   accentLight: '#ECFDF5',
-  accentSecondary: '#F97316',
+  accentSecondary: '#8B5CF6',
   danger: '#E11D48',
   warning: '#D97706',
   success: '#10B981',
