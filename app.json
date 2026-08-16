@@ -17,6 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rokda.app",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSFaceIDUsageDescription": "Rokda uses Face ID to protect your sensitive financial records."
       }
     },
@@ -27,6 +28,8 @@
       },
       "package": "com.rokda.app",
       "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT"
       ]
@@ -53,6 +56,12 @@
       "eas": {
         "projectId": "87d97451-327a-4a96-b4ae-07d7b13e1075"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/87d97451-327a-4a96-b4ae-07d7b13e1075"
     }
   }
 }

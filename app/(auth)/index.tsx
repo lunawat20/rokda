@@ -5,17 +5,10 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/context/ThemeContext';
-import { useAuth } from '../../src/context/AuthContext';
 
 export default function AuthLandingScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { loginWithDemo } = useAuth();
-
-  const handleQuickDemoLogin = async () => {
-    await loginWithDemo();
-    router.replace('/(tabs)');
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -25,7 +18,7 @@ export default function AuthLandingScreen() {
         </View>
         <Text style={[styles.title, { color: colors.textPrimary }]}>Rokda</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Local-first, privacy-focused personal finance manager for iOS.
+          Local-first, privacy-focused personal finance manager.
         </Text>
       </View>
 
@@ -45,14 +38,6 @@ export default function AuthLandingScreen() {
       </View>
 
       <View style={styles.actionSection}>
-        <Pressable
-          style={[styles.demoButton, { backgroundColor: colors.success }]}
-          onPress={handleQuickDemoLogin}
-        >
-          <Ionicons name="flash" size={18} color="#FFFFFF" />
-          <Text style={styles.demoButtonText}>⚡ Instant Test Login (Offline Demo)</Text>
-        </Pressable>
-
         <Pressable
           style={[styles.primaryButton, { backgroundColor: colors.accent }]}
           onPress={() => router.push('/(auth)/signup')}
@@ -117,20 +102,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   actionSection: {
-    gap: 10,
-  },
-  demoButton: {
-    height: 52,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  demoButtonText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '700',
+    gap: 12,
   },
   primaryButton: {
     height: 50,

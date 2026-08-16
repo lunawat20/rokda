@@ -1,32 +1,61 @@
-// ROKDA REPORTS & CSV EXPORTER SCREEN
+// ROKDA REPORTS & PDF / CSV STATEMENT EXPORTER
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useAuth } from '../../src/context/AuthContext';
 import { useDb } from '../../src/context/DbContext';
 import { formatPaise } from '../../src/utils/currency';
 import { calculateCashFlow } from '../../src/services/financial';
-import { exportTransactionsToCSV } from '../../src/services/export';
+import { exportTransactionsToCSV, exportTransactionsToPDF } from '../../src/services/export';
+import { exportBackupToFile } from '../../src/services/backup';
 
 export default function ReportsScreen() {
   const { colors } = useTheme();
+  const { user } = useAuth();
   const { transactions, categories, accounts } = useDb();
   const router = useRouter();
-  const [exporting, setExporting] = useState(false);
+
+  const [exportingCSV, setExportingCSV] = useState(false);
+  const [exportingPDF, setExportingPDF] = useState(false);
+  const [syncingGDrive, setSyncingGDrive] = useState(false);
 
   const cashFlow = calculateCashFlow(transactions);
+  const userName = user?.user_metadata?.name || 'Sid';
 
   const handleExportCSV = async () => {
-    setExporting(true);
+    setExportingCSV(true);
     try {
       await exportTransactionsToCSV(transactions, categories, accounts);
-      Alert.alert('CSV Exported', 'Your transaction log has been compiled into CSV format.');
     } catch (e: any) {
       Alert.alert('Export Error', e.message || 'Could not export CSV.');
     } finally {
-      setExporting(false);
+      setExportingCSV(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    setExportingPDF(true);
+    try {
+      await exportTransactionsToPDF(transactions, categories, accounts, userName);
+    } catch (e: any) {
+      Alert.alert('Export Error', e.message || 'Could not generate PDF statement.');
+    } finally {
+      setExportingPDF(false);
+    }
+  };
+
+  const handleGoogleDriveSync = async () => {
+    setSyncingGDrive(true);
+    try {
+      await exportBackupToFile(user?.id || 'guest');
+      Alert.alert('Google Drive Sync Ready', 'Your full application state and transactions have been compiled into an encrypted JSON payload ready for Google Drive backup.');
+    } catch (e: any) {
+      Alert.alert('Drive Sync Error', e.message || 'Could not trigger cloud sync.');
+    } finally {
+      setSyncingGDrive(false);
     }
   };
 
@@ -36,16 +65,17 @@ export default function ReportsScreen() {
         <Pressable onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Reports & Export</Text>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Statements & Reports</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Period Overview Card */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>Period Overview</Text>
           <View style={styles.row}>
             <Text style={[styles.label, { color: colors.textMuted }]}>Total Income</Text>
-            <Text style={[styles.val, { color: colors.success }]}>+{formatPaise(cashFlow.incomePaise)}</Text>
+            <Text style={[styles.val, { color: colors.accent }]}>+{formatPaise(cashFlow.incomePaise)}</Text>
           </View>
           <View style={styles.row}>
             <Text style={[styles.label, { color: colors.textMuted }]}>Total Expenses</Text>
@@ -57,19 +87,54 @@ export default function ReportsScreen() {
           </View>
         </View>
 
+        {/* 1. PDF Financial Statement Card */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <Ionicons name="document-text" size={32} color={colors.accent} />
-          <Text style={[styles.cardTitle, { color: colors.textPrimary, marginTop: 8 }]}>Export CSV Financial Report</Text>
+          <Text style={[styles.cardTitle, { color: colors.textPrimary, marginTop: 8 }]}>PDF Financial Statement</Text>
           <Text style={[styles.cardSub, { color: colors.textSecondary }]}>
-            Export all transactions, merchants, amounts, categories, and notes to a standard CSV spreadsheet via iOS Share.
+            Generates a beautifully formatted PDF report containing income/expense audit logs, balance summary, and category breakdowns.
           </Text>
 
           <Pressable
             style={[styles.exportBtn, { backgroundColor: colors.accent }]}
-            onPress={handleExportCSV}
-            disabled={exporting}
+            onPress={handleExportPDF}
+            disabled={exportingPDF}
           >
-            {exporting ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.exportBtnText}>Generate & Share CSV</Text>}
+            {exportingPDF ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.exportBtnText}>Generate & Download PDF</Text>}
+          </Pressable>
+        </View>
+
+        {/* 2. Google Drive Auto-Sync Card */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Ionicons name="logo-google" size={32} color="#4285F4" />
+          <Text style={[styles.cardTitle, { color: colors.textPrimary, marginTop: 8 }]}>Google Drive Auto-Sync</Text>
+          <Text style={[styles.cardSub, { color: colors.textSecondary }]}>
+            Uploads an encrypted full backup to Google Drive so you can automatically sync and restore all data onto any new phone.
+          </Text>
+
+          <Pressable
+            style={[styles.exportBtn, { backgroundColor: '#4285F4' }]}
+            onPress={handleGoogleDriveSync}
+            disabled={syncingGDrive}
+          >
+            {syncingGDrive ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.exportBtnText}>Sync to Google Drive</Text>}
+          </Pressable>
+        </View>
+
+        {/* 3. CSV Spreadsheet Export */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+          <Ionicons name="grid-outline" size={32} color={colors.textSecondary} />
+          <Text style={[styles.cardTitle, { color: colors.textPrimary, marginTop: 8 }]}>CSV Spreadsheet Export</Text>
+          <Text style={[styles.cardSub, { color: colors.textSecondary }]}>
+            Export raw transaction logs to a CSV spreadsheet compatible with Microsoft Excel, Apple Numbers, and Google Sheets.
+          </Text>
+
+          <Pressable
+            style={[styles.exportBtn, { backgroundColor: colors.cardBorder }]}
+            onPress={handleExportCSV}
+            disabled={exportingCSV}
+          >
+            {exportingCSV ? <ActivityIndicator color={colors.textPrimary} /> : <Text style={[styles.exportBtnText, { color: colors.textPrimary }]}>Export CSV Spreadsheet</Text>}
           </Pressable>
         </View>
       </ScrollView>

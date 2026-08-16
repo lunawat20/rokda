@@ -51,13 +51,14 @@ export const SYSTEM_CATEGORIES: Omit<Category, 'user_id' | 'created_at' | 'updat
   { id: 'cat_other_income', name: 'Other Income', type: 'income', icon: 'cash', color: '#10B981', is_archived: false, is_system: true }
 ];
 
+// Clean Zero Balance Initial Accounts
 export const DEFAULT_ACCOUNTS: Omit<Account, 'user_id' | 'created_at' | 'updated_at' | 'version'>[] = [
   {
     id: 'acc_cash',
     name: 'Cash In Hand',
     type: 'cash',
-    opening_balance_paise: 500000, // ₹5,000.00
-    current_balance_paise: 500000,
+    opening_balance_paise: 0, // ₹0
+    current_balance_paise: 0,
     currency_code: 'INR',
     icon: 'cash',
     color: '#10B981',
@@ -65,10 +66,10 @@ export const DEFAULT_ACCOUNTS: Omit<Account, 'user_id' | 'created_at' | 'updated
   },
   {
     id: 'acc_bank_main',
-    name: 'HDFC Salary Bank',
+    name: 'Primary Bank Account',
     type: 'bank',
-    opening_balance_paise: 8500000, // ₹85,000.00
-    current_balance_paise: 8500000,
+    opening_balance_paise: 0, // ₹0
+    current_balance_paise: 0,
     currency_code: 'INR',
     icon: 'card',
     color: '#3B82F6',
@@ -76,12 +77,12 @@ export const DEFAULT_ACCOUNTS: Omit<Account, 'user_id' | 'created_at' | 'updated
   },
   {
     id: 'acc_credit_card',
-    name: 'ICICI Credit Card',
+    name: 'Credit Card',
     type: 'credit_card',
-    opening_balance_paise: -1500000, // -₹15,000.00 debt
-    current_balance_paise: -1500000,
+    opening_balance_paise: 0, // ₹0
+    current_balance_paise: 0,
     currency_code: 'INR',
-    icon: 'card',
+    icon: 'card-outline',
     color: '#EF4444',
     is_archived: false
   }
