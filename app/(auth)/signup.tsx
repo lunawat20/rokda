@@ -1,15 +1,17 @@
-// ROKDA SIGNUP SCREEN
+// ROKDA SIGNUP SCREEN WITH 6-DIGIT EMAIL OTP REDIRECT
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/context/ThemeContext';
 import { signUpWithEmail } from '../../src/services/auth';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function SignUpScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { loginWithCredentials } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,7 +19,7 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
-    if (!name || !email || !password) {
+    if (!name.trim() || !email.trim() || !password) {
       Alert.alert('Missing Fields', 'Please fill in your name, email, and password.');
       return;
     }
@@ -29,9 +31,18 @@ export default function SignUpScreen() {
 
     setLoading(true);
     try {
-      await signUpWithEmail(name.trim(), email.trim(), password);
-      Alert.alert('Account Created', 'Your Rokda account has been set up successfully!');
-      // Auth context automatically redirects to (tabs)
+      const res = await signUpWithEmail(name.trim(), email.trim(), password);
+
+      if (res.needsOtp) {
+        // Redirect to 6-digit OTP verification screen
+        router.push({
+          pathname: '/(auth)/verify-otp' as any,
+          params: { email: email.trim() }
+        });
+      } else if (res.user) {
+        await loginWithCredentials(res.user);
+        router.replace('/(tabs)');
+      }
     } catch (e: any) {
       Alert.alert('Sign Up Failed', e.message || 'Could not create account.');
     } finally {
@@ -40,60 +51,64 @@ export default function SignUpScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.bg }]}>
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-      </Pressable>
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={[styles.container, { backgroundColor: colors.bg }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </Pressable>
 
-      <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Create Account</Text>
-      <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
-        Set up your private Rokda personal finance workspace.
-      </Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Create Account</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+            Sign up for your secure, cloud-synced Rokda finance workspace.
+          </Text>
 
-      <View style={styles.formGroup}>
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-          placeholder="Sidd"
-          placeholderTextColor={colors.textMuted}
-          value={name}
-          onChangeText={setName}
-        />
+          <View style={styles.formGroup}>
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Full Name</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
+              placeholder="e.g. Sidd"
+              placeholderTextColor={colors.textMuted}
+              value={name}
+              onChangeText={setName}
+            />
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Email Address</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-          placeholder="sidd@example.com"
-          placeholderTextColor={colors.textMuted}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-        />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Email Address</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
+              placeholder="name@example.com"
+              placeholderTextColor={colors.textMuted}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
 
-        <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
-        <TextInput
-          style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
-          placeholder="At least 6 characters"
-          placeholderTextColor={colors.textMuted}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+            <Text style={[styles.label, { color: colors.textSecondary }]}>Password</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: colors.inputBg, color: colors.textPrimary, borderColor: colors.cardBorder }]}
+              placeholder="At least 6 characters"
+              placeholderTextColor={colors.textMuted}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
 
-        <Pressable
-          style={[styles.submitButton, { backgroundColor: colors.accent }]}
-          onPress={handleSignUp}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.submitButtonText}>Create Account</Text>
-          )}
-        </Pressable>
+            <Pressable
+              style={[styles.submitButton, { backgroundColor: colors.accent }]}
+              onPress={handleSignUp}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.submitButtonText}>Send 6-Digit Verification Code</Text>
+              )}
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -113,7 +128,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 15,
     marginTop: 4,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   formGroup: {
     gap: 12,
@@ -121,7 +136,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    marginTop: 8,
   },
   input: {
     height: 48,
@@ -135,11 +149,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 16,
   },
   submitButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
