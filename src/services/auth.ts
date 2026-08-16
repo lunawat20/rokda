@@ -1,10 +1,14 @@
-// ROKDA AUTHENTICATION SERVICE WITH DEMO & OFFLINE TEST FALLBACK
+// ROKDA AUTHENTICATION SERVICE WITH GOOGLE OAUTH & SUPABASE INTEGRATION
 
 import { supabase } from '../database/supabase';
 import { getDatabaseForUser, closeCurrentDatabase } from '../database/db';
 import { initializeUserDefaults } from '../database/repository';
 import { populateSampleData } from './sampleData';
 import * as SecureStore from 'expo-secure-store';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const MOCK_USER_KEY = 'ROKDA_MOCK_USER_SESSION';
 
@@ -14,9 +18,6 @@ export interface LocalUserSession {
   user_metadata: { name: string };
 }
 
-/**
- * Persists local demo/test user session in SecureStore.
- */
 export async function saveLocalSession(session: LocalUserSession) {
   try {
     await SecureStore.setItemAsync(MOCK_USER_KEY, JSON.stringify(session));
@@ -25,9 +26,6 @@ export async function saveLocalSession(session: LocalUserSession) {
   }
 }
 
-/**
- * Retrieves persisted local demo/test user session.
- */
 export async function getLocalSession(): Promise<LocalUserSession | null> {
   try {
     const raw = await SecureStore.getItemAsync(MOCK_USER_KEY);
@@ -37,9 +35,6 @@ export async function getLocalSession(): Promise<LocalUserSession | null> {
   }
 }
 
-/**
- * Clears local user session from SecureStore.
- */
 export async function clearLocalSession() {
   try {
     await SecureStore.deleteItemAsync(MOCK_USER_KEY);
@@ -64,7 +59,6 @@ export async function signUpWithEmail(name: string, email: string, password: str
     console.warn('Supabase signup notice, falling back to local database:', e);
   }
 
-  // Fallback to Local Offline Account
   const userId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
   const mockUser: LocalUserSession = {
     id: userId,
@@ -92,7 +86,6 @@ export async function signInWithEmail(email: string, password: string) {
     console.warn('Supabase signin notice, falling back to local database:', e);
   }
 
-  // Fallback to Local Offline Account
   const userId = `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
   const mockUser: LocalUserSession = {
     id: userId,
@@ -105,10 +98,6 @@ export async function signInWithEmail(email: string, password: string) {
   return { user: mockUser };
 }
 
-/**
- * Instant One-Tap Demo Test User Login.
- * Mounts local SQLite database for test@rokda.app and populates sample dataset.
- */
 export async function signInWithDemoUser() {
   const demoEmail = 'test@rokda.app';
   const demoUserId = 'demo_user_test_rokda_app';
@@ -123,6 +112,41 @@ export async function signInWithDemoUser() {
   await saveLocalSession(mockUser);
 
   return { user: mockUser };
+}
+
+/**
+ * Initiates 1-Tap Google OAuth Sign-In via Supabase.
+ */
+export async function signInWithGoogle() {
+  try {
+    const redirectUrl = AuthSession.makeRedirectUri({
+      scheme: 'rokda',
+      path: 'auth/callback'
+    });
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        skipBrowserRedirect: false
+      }
+    });
+
+    if (error) throw error;
+    if (data?.url) {
+      const res = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      if (res.type === 'success' && res.url) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          await initializeUserDefaults(sessionData.session.user.id);
+          return sessionData.session;
+        }
+      }
+    }
+  } catch (e: any) {
+    console.warn('Google Auth notice:', e);
+    throw e;
+  }
 }
 
 export async function signOut(): Promise<void> {
@@ -157,22 +181,4 @@ export async function deleteUserAccount(userId: string) {
   try {
     await supabase.auth.signOut();
   } catch (e) {}
-}
-
-export async function signInWithApple(identityToken: string) {
-  try {
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'apple',
-      token: identityToken
-    });
-
-    if (!error && data?.user) {
-      await initializeUserDefaults(data.user.id);
-      return data;
-    }
-  } catch (e) {
-    console.warn('Apple auth notice:', e);
-  }
-
-  return signInWithDemoUser();
 }

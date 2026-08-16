@@ -46,7 +46,8 @@
         {
           "faceIDPermission": "Allow Rokda to use Face ID to protect your personal money manager."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

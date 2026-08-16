@@ -1,14 +1,33 @@
-// ROKDA AUTH LANDING / WELCOME SCREEN
+// ROKDA AUTH LANDING / WELCOME SCREEN WITH GOOGLE LOGIN
 
-import React from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useAuth } from '../../src/context/AuthContext';
+import { signInWithGoogle } from '../../src/services/auth';
 
 export default function AuthLandingScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { loginWithCredentials } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      const session = await signInWithGoogle();
+      if (session?.user) {
+        await loginWithCredentials(session.user);
+        router.replace('/(tabs)');
+      }
+    } catch (e: any) {
+      Alert.alert('Google Sign-In', e.message || 'Google sign-in completed.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
@@ -38,11 +57,27 @@ export default function AuthLandingScreen() {
       </View>
 
       <View style={styles.actionSection}>
+        {/* Google OAuth Button */}
+        <Pressable
+          style={[styles.googleButton, { backgroundColor: '#FFFFFF' }]}
+          onPress={handleGoogleLogin}
+          disabled={googleLoading}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color="#000000" />
+          ) : (
+            <>
+              <Ionicons name="logo-google" size={20} color="#EA4335" />
+              <Text style={styles.googleButtonText}>Continue with Google</Text>
+            </>
+          )}
+        </Pressable>
+
         <Pressable
           style={[styles.primaryButton, { backgroundColor: colors.accent }]}
           onPress={() => router.push('/(auth)/signup')}
         >
-          <Text style={styles.primaryButtonText}>Create Account</Text>
+          <Text style={styles.primaryButtonText}>Create Account with Email</Text>
         </Pressable>
 
         <Pressable
@@ -103,6 +138,19 @@ const styles = StyleSheet.create({
   },
   actionSection: {
     gap: 12,
+  },
+  googleButton: {
+    height: 52,
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  googleButtonText: {
+    color: '#000000',
+    fontSize: 15,
+    fontWeight: '700',
   },
   primaryButton: {
     height: 50,
